@@ -1,0 +1,5 @@
+"0","#Arrange data by species, then by filename"
+"0","bat_data <- bat_data %>% arrange(species, filename)"
+"0",""
+"0","#display arranged data"
+"0","head(bat_data)"
