@@ -1,0 +1,6 @@
+"0","rf_accuracy <- mean(rf_predictions == test_data$species)"
+"0","rf_accuracy"
+"1","[1]"
+"1"," 0.8888889"
+"1","
+"

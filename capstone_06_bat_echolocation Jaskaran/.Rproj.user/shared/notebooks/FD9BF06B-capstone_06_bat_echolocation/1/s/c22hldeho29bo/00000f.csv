@@ -1,0 +1,8 @@
+"0","library(randomForest)"
+"0",""
+"0","rf_model <- randomForest("
+"0","  species ~ duration + frequency + time_btw_calls + slope,"
+"0","  data = train_data,"
+"0","  ntree = 300,"
+"0","  mtry = 2"
+"0",")"
