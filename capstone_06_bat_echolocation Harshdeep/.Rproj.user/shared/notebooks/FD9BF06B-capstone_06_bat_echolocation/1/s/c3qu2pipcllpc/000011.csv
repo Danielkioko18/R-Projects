@@ -1,0 +1,4 @@
+"0","#read bat echolocation data from the csv"
+"0","echolocation_data <- read_csv(""Bat_Call_Data.csv"")"
+"0","#view output"
+"0","head(echolocation_data)"
