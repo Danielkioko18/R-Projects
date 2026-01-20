@@ -1,0 +1,11 @@
+"0",""
+"0","# -----------------------------------------------------------------------------"
+"0","# Tidy Step 1: Check for Missing Values (NAs)"
+"0","# -----------------------------------------------------------------------------"
+"0",""
+"0","# We check for any NA values across all columns. "
+"0","cat(""Count of Missing Values (NA) per column:\n"")"
+"1","Count of Missing Values (NA) per column:
+"
+"0","bat_data %>%"
+"0","  summarise(across(everything(), ~ sum(is.na(.))))"

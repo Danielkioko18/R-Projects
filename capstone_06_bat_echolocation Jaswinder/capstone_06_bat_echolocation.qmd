@@ -1,0 +1,349 @@
+---
+title: "Bat Echolocation"
+subtitle: "Capstone project: BIDA 302"
+author: "Jaswinder Singh"
+date: "11-26-2025"
+format: html
+embed-resources: true
+---
+
+## **Introduction** {#bat-echolocation-intro}
+
+Echolocation call data for 4 species of Vancouver Island bats (https://bcbats.ca/bat-basics/bat-species-in-bc/). Call data comprises 30 unique records for 4 echolocation call parameters for each of the bat species. Call data was recorded using an ultrasonic bat detector (Anabat; Titley Scientific https://www.titley-scientific.com/) with call parameters downloaded and extracted using AnaLook.
+
+For this project, explore the data using the inspiration provided by the penguin analysis (below).
+
+### Data source {#bat-echolocation-data}
+
+Variables:
+
+**Species**
+
+EPFU - Eptesicus fuscus; Big Brown Bat
+
+LACI - Lasiurus cinereus; Hoary Bat
+
+MYLU - Myotis lucifugus; Little Brown Bat
+
+MYVO - Myotis volans; Long-legged Myotis
+
+**Filename** - Unique ID for each bat call
+
+***Echolocation Call Paramters:***
+
+**Time_Btw_Calls** - Time between calls (milliseconds)
+
+**Duration** - Duration of the body of call (milliseconds)
+
+**Frequency** - Characteristic frequency (kHz)
+
+**Slope** - Characteristic slope
+
+Source: Dr. Joanna Burgar; https://github.com/joburgar/echolocation_data
+
+### Additional Inspiration {#bat-echolocation-palmerpenguins}
+
+The R package {palmerpenguins} reference page has some tabulations and visualizations that may provide some inspiration:
+
+-   https://allisonhorst.github.io/palmerpenguins/
+
+-   in particular, the "Get started" and "Articles" have both the visualizations and the code used to create those visualizations.
+
+## **1. Project Setup: Libraries**
+
+```{r setup, message=FALSE, warning=FALSE}
+#Load Core Libraries
+
+#tidyverse for data manipulation (dplyr) and visualization (ggplot2)
+library(tidyverse) 
+
+#randomForest for classification
+library(tidymodels) 
+
+##For creating highquality, formatted tables
+library(gt) 
+
+#Set a consistent theme for all ggplot visualizations
+theme_set(theme_bw())
+
+##Set a seed for reproducibility, for the model later
+set.seed(42)
+```
+
+## 2. Data import and variable definition
+
+This section handles the data import and ensures the variable types are correctly defined, which is crucial for accurate analysis and modeling. The target variable, Species, is explicitly converted to a factor.
+
+```{r data-import-and-cleaning}
+#============ Data Import===================
+
+#import the raw bat call data from the CSV file.
+bat_data_raw <- read_csv("Bat_Call_Data.csv")
+
+#===========data cleaning and variable type definition============
+
+bat_data <- bat_data_raw %>%
+##rename columns to a more consistent format
+  rename(
+    time_btw_calls = Time_Btw_Calls,
+    call_duration = Duration,
+    char_frequency = Frequency,
+    char_slope = Slope
+  ) %>%
+  #convert the species column (the target variable) to a factor
+  mutate(
+    Species = as_factor(Species)
+  )
+
+#================ Inspect the Cleaned Data=================
+#Use glimpse() to quickly check the structure and ensure variable types are correct
+glimpse(bat_data)
+```
+
+## **3. Data tidying and manipulation**
+
+This chunk performs initial data quality checks and creates a statistically rich summary table that will be essential for the analysis and introduction.
+
+```{r data-manipulation, message=FALSE, warning=FALSE}
+
+# -----------------------------------------------------------------------------
+# Tidy Step 1: Check for Missing Values (NAs)
+# -----------------------------------------------------------------------------
+
+# We check for any NA values across all columns. 
+cat("Count of Missing Values (NA) per column:\n")
+bat_data %>%
+  summarise(across(everything(), ~ sum(is.na(.))))
+
+# -----------------------------------------------------------------------------
+# Tidy Step 2: Check for outliers/distributions (Boxplots)
+# -----------------------------------------------------------------------------
+
+bat_data_long <- bat_data %>%
+  select(-Filename) %>%
+  pivot_longer(
+    cols = c(time_btw_calls, call_duration, char_frequency, char_slope),
+    names_to = "parameter",
+    values_to = "value"
+  )
+
+ggplot(bat_data_long, aes(x = Species, y = value, fill = Species)) +
+  geom_boxplot() +
+  facet_wrap(~ parameter, scales = "free_y", ncol = 2) +
+  labs(
+    title = "Distribution of Echolocation Parameters by Bat Species",
+    x = "Bat Species",
+    y = "Parameter Value (Units)"
+  ) +
+  theme(legend.position = "none")
+
+
+# -----------------------------------------------------------------------------
+# Manipulation: Summary statistics Table
+# -----------------------------------------------------------------------------
+
+##create the summary table
+bat_summary_table <- bat_data %>%
+  group_by(Species) %>%
+  summarise(
+    N = n(),
+    ##calculate and round Mean and SD for all parameters
+    Mean_Freq = round(mean(char_frequency, na.rm = TRUE), 2),
+    SD_Freq = round(sd(char_frequency, na.rm = TRUE), 2),
+    Mean_Duration = round(mean(call_duration, na.rm = TRUE), 2),
+    SD_Duration = round(sd(call_duration, na.rm = TRUE), 2),
+    Mean_Slope = round(mean(char_slope, na.rm = TRUE), 2),
+    SD_Slope = round(sd(char_slope, na.rm = TRUE), 2),
+    Mean_TimeBtw = round(mean(time_btw_calls, na.rm = TRUE), 2),
+    SD_TimeBtw = round(sd(time_btw_calls, na.rm = TRUE), 2)
+  ) %>%
+  ungroup() %>%
+  
+  #convert mean and SD to character strings and combine them
+  mutate(
+    Frequency = paste0(Mean_Freq, " (", SD_Freq, ")"),
+    Duration = paste0(Mean_Duration, " (", SD_Duration, ")"),
+    Slope = paste0(Mean_Slope, " (", SD_Slope, ")"),
+    TimeBtw = paste0(Mean_TimeBtw, " (", SD_TimeBtw, ")")
+  ) %>%
+  
+  ###select only the required columns for the final table
+  select(Species, N, Frequency, Duration, Slope, TimeBtw) %>%
+  
+  #pipe the pre-formatted data to the 'gt' package
+  gt() %>%
+  tab_header(
+    title = md("**Descriptive Statistics of Echolocation Calls by Species**"),
+    subtitle = "Mean and Standard Deviation (SD) in parentheses"
+  ) %>%
+  
+  #relabel the columns
+  cols_label(
+    N = "Count",
+    Frequency = "Frequency (kHz)",
+    Duration = "Duration (ms)",
+    Slope = "Slope",
+    TimeBtw = "Time Btw Calls (ms)"
+  )
+
+# Display the high-quality table
+bat_summary_table
+```
+
+## **4. Data Visualizations**
+
+These plots aim to highlight the differences in echolocation call characteristics between the four bat species.
+
+**Plot 1: Scatterplot - Frequency vs Duration**
+
+```{r viz-scatter-frequency-duration}
+ggplot(bat_data, 
+       aes(x = char_frequency, y = call_duration, color = Species, shape = Species)) +
+  geom_point(alpha = 0.7, size = 3) +
+  labs(
+    title = "Plot 1: Call Frequency vs. Duration by Species",
+    x = "Characteristic Frequency (kHz)",
+    y = "Call Duration (ms)",
+    color = "Species",
+    shape = "Species"
+  ) +
+  theme_minimal() +
+  scale_color_brewer(palette = "Set1")
+```
+
+**Discussion**
+
+The scatter plot clearly demonstrates that Frequency and Duration are powerful parameters for distinguishing the four bat species, as the species form distinct, non-overlapping clusters. The EPFU (Big Brown Bat) and LACI (Hoary Bat) tend to utilize lower characteristic frequencies (below 30 kHz) and longer call durations, a pattern typical of "low and slow" calls used for long-range search in open environments. In contrast, the MYLU (Little Brown Bat) and MYVO (Long-legged Myotis) exhibit higher frequencies (above34kHz) and generally shorter durations, suggesting they specialize in higher-resolution detection often used in more cluttered habitats or for discriminating fine details of small prey. This separation highlights fundamental differences in foraging strategy dictated by the call structure.
+
+**Plot 2: Density Plot - Characteristic Slope Distribution**
+
+```{r density-slope}
+
+ggplot(bat_data, aes(x = char_slope, fill = Species, color = Species)) +
+  geom_density(alpha = 0.4) +
+  labs(
+    title = "Plot 2: Density Distribution of Characteristic Slope by Species",
+    x = "Characteristic Slope",
+    y = "Density",
+    fill = "Species",
+    color = "Species"
+  ) +
+  theme_bw()
+```
+
+**Discussion**
+
+The density plot shows the distribution of the Characteristic Slope, which measures how quickly the call frequency changes (steep vs. shallow). The EPFU and LACI calls show high peaks at lower slope values, indicating their calls are relatively shallow (more constant frequency), which maximizes detection range. Conversely, MYLU and MYVO distributions peak at higher slope values, meaning their calls are more steeply frequency-modulated (FM). This steeper slope provides excellent temporal resolution and is essential for rapid location and tracking of prey in a complex, three-dimensional environment, often indicating a species that forages near or in foliage
+
+**Plot 3: Categorical/Box Plot - Time Between Calls**
+
+```{r boxplot-time-btw-calls}
+ggplot(bat_data, aes(x = Species, y = time_btw_calls, fill = Species)) +
+  geom_boxplot() +
+  geom_jitter(width = 0.1, alpha = 0.6) + # Add points to show individual data records
+  labs(
+    title = "Plot 3: Time Between Calls by Species",
+    x = "Bat Species",
+    y = "Time Between Calls (ms)"
+  ) +
+  theme_light() +
+  theme(legend.position = "none")
+```
+
+**Discussion**
+
+The box plot illustrates the variability and central tendencyof the Time Between Calls (TBC), a parameter directly related to the bat's flight speed and the sensory scene it is building. While EPFU maintains the shortest TBC (fastest repetition rate) the most notable difference lies in the high variability and longer median TBC seen in LACI (Hoary Bat). Longer TBC sugests a slower rate of information acquisition, characteristic of high-flying, long-distance aerial foragers who have more time between echoes and require less frequent updates. Conversely, the shorter, tightly grouped TBC of EPFU indicates a higher pulse rate needed for foraging in closer proximity to objects or the ground.
+
+## **5. Statistical Modeling: Random Forest Classification**
+
+**Data splitting**
+
+```{r model-split-data}
+
+#Split the data into training (70%) and testing (30%) sets.
+data_split <- initial_split(
+  bat_data %>% select(-Filename), ###Exclude the identifier column
+  prop = 0.70, # 70% for training
+  strata = Species #Crucial for balanced training in classification
+)
+
+##/Extract the training and testing data sets
+bat_train <- training(data_split)
+bat_test <- testing(data_split)
+```
+
+**Model specifiation and training**
+
+```{r}
+
+#define the Random Forest model specification using the parsnip package
+
+rf_model_spec_base <- rand_forest(mode = "classification", 
+                                  trees = 500) %>%
+  set_engine("randomForest")
+
+# Train (Fit) the Random Forest model using the training data
+rf_fit_base <- rf_model_spec_base %>%
+  fit(Species ~ char_frequency + call_duration + char_slope + time_btw_calls,
+      data = bat_train)
+
+#Output a brief summary of the fit object
+print(rf_fit_base)
+```
+
+**Prediction and evaluation**
+
+```{r}
+#use the trained model to predict species on the unseen test data
+bat_results <- bat_test %>%
+  ##add the predicted species class (.pred_class)
+  bind_cols(predict(rf_fit_base, new_data = bat_test, type = "class")) %>%
+  # Add the predicted class probabilities
+  bind_cols(predict(rf_fit_base, new_data = bat_test, type = "prob"))
+
+###=====================Evaluation Metrics========================
+
+# 1. Confusion Matrix:Shows correct vs. incorrect classifications per specie
+
+conf_matrix <- conf_mat(bat_results, truth = Species, estimate = .pred_class)
+cat("Confusion Matrix:\n")
+print(conf_matrix)
+
+##2. Key Metrics: Calculate Accuracy and Kappa
+model_metrics <- metric_set(accuracy, kap)
+metrics_table <- bat_results %>%
+  model_metrics(truth = Species, estimate = .pred_class) %>%
+  select(-.estimator) %>%
+  
+  ###se gt to format the metrics nicely
+  gt() %>%
+  tab_header(title = "Random Forest Model Performance Metrics") %>%
+  fmt_number(columns = where(is.numeric), decimals = 3)
+
+#ddisplay the performance metrics table
+metrics_table
+```
+
+## 6. Conclusion
+
+This capstone project successfully demonstrated the distinctiveness of echolocation call parameters among four Vancouver Island bat species using exploratory data analysis and a Random Forest classification model. The visualizations revealed that call characteristics, particularly Characteristic Frequency and Call Duration (Plot 1), and Characteristic Slope (Plot 2), cluster the species into ecologically meaningful groups, reflecting known differences in foraging strategies (e.g., open-air vs. cluttered-habitat foragers).
+
+The trained Random Forest model achieved exceptional performance, with an Accuracy of ***0.972(97.2%)*** and a Kappa of ***0.963.*** The confusion matrix further confirmed this success, showing only a single misclassification (one MYLU call incorrectly predicted as MYVO). This high accuracy confirms that the four measured acoustic parameters contain sufficient information to reliably distinguish between the four bat species. Moving forward, the Variable Importance analysis (Section 6) provides crucial ecological insight, identifying the most critical parameters that drive this highly accurate classification, paving the way for standardized, automated acoustic monitoring in the field.
+
+**Statistical analysis of bat calls**
+
+David W. Armitage and Holly K. Ober, [A comparison of supervised learning techniques in the classification of bat echolocation calls](https://d1wqtxts1xzle7.cloudfront.net/87523713/Armitage___Ober_2010-libre.pdf?1655248128=&response-content-disposition=inline%3B+filename%3DA_comparison_of_supervised_learning_tech.pdf&Expires=1729484387&Signature=Lxiv5x26ZtpirTLc5hmru9L3utvNK~0nWjTiekUvo7gQZy~qd2uB4xIsYTf~QUTJqP63AJpNWaS3rVroC4dqjfF4Fq~zqsjT-4wJAsg9bKi3p-fLX86ipYcoU9X0mXrdBvVy5XKIJQuD1z5o5WbRSuXjGrJh~dVucgCrVLd8nL-E-VM~WzpTWfr56VOY3DjKf-KIGjS537GBdgsWBr92xPxGxJlSIYtf69pXVJcX9tAIoLNuNyqBSE14Op7h7UZJx26wvaYk9VU6vCUV0-GmZGrrhAmDrSDMm~D0yD08SdvTiGiUHEm4yNNl3JfizbiSKvgwxqGa5tbSEBayh6-Aug__&Key-Pair-Id=APKAJLOHF5GGSLRBV4ZA), *Ecological Infomatics*, 2010, 5, 465:473.
+
+Xing Chen, Jun Zhaob, Yan-hua Chen, Wei Zhoub, and Alice C.Hughes, [Automatic standardized processing and identification of tropical bat calls using deep learning approaches](https://www.sciencedirect.com/science/article/pii/S0006320719308961), *Biological Conservation*, January 2020, Vol.241, doi: 10.1016/j.biocon.2019.108269
+
+Oisin MacAodha, Rory Gibb, Kate E. Barlow, et al., [Bat detective—Deep learning tools for bat acoustic signal detection](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1005995), *PLOS Computational Biology*, 2018-03-08, doi: 10.1371/journal.pcbi.1005995
+
+Keisuke Masuda, Takanori Matsui, Dai Fukui, et al., [Bat species classification by echolocation call using a machine learning system](https://www.jstage.jst.go.jp/article/mammalianscience/57/1/57_19/_article), *Honyurui Kagaku (Mammalian Science)*, Volume 57 (2017) Issue 1. doi: 10.11238/mammalianscience.57.19
+
+Peter Ommundsen,Cori Lausen, Laura Matthias, [First Acoustic Records of the Brazilian Free-Tailed Bat (Tadarida brasiliensis) In British Columbia](https://www.researchgate.net/publication/319424456_First_Acoustic_Records_of_the_Brazilian_Free-Tailed_Bat_Tadarida_brasiliensis_In_British_Columbia), September 2017, *Northwestern Naturalist*, 98(2):132-136, DOI: 10.1898/NWN16-24.1
+
+Veronica Zamora-Gutierrez, Celia Lopez-Gonzalez, M. Cristina MacSwiney Gonzalez, et al., [Acoustic identification of Mexican bats based on taxonomic and ecological constraints on call design](https://besjournals.onlinelibrary.wiley.com/doi/pdf/10.1111/2041-210X.12556), *Methods in Ecology and Evolution* 2016, 7, 1082–1091. doi: 10.1111/2041-210X.12556
+
+**Other bat communication**
+
+Jason Daley, [Researchers “Translate” Bat Talk. Turns Out, They Argue—A Lot](https://getpocket.com/explore/item/researchers-translate-bat-talk-turns-out-they-argue-a-lot), *Smithsonian Magazine*, 2016-12-22.
