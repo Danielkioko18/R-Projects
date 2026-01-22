@@ -1,0 +1,154 @@
+---
+title: "Bat Echolocation Project"
+subtitle: "Capstone project: BIDA 302"
+author: "<b>Rajwant Kaur</b>"
+date: "11-27-2025"
+format: html
+embed-resources: true
+---
+
+## Import libraries
+
+```{r setup, message=FALSE, warning=FALSE}
+library(tidyverse) 
+library(tidymodels) 
+library(gt) 
+```
+
+## Import data
+
+```{r}
+#Import raw data
+species_data_raw <- read_csv("Bat_Call_Data.csv")
+
+#cleaning and variable type definition
+bat_data <- species_data_raw %>%
+##rename columns
+  rename(
+    time_btw_calls = Time_Btw_Calls,
+    call_duration = Duration,
+    char_frequency = Frequency,
+    char_slope = Slope
+  ) %>%
+  mutate(
+    Species = as_factor(Species) #to a factor
+  )
+
+glimpse(bat_data)
+```
+
+## Tidying and manipulation
+
+```{r message=FALSE, warning=FALSE}
+
+#find the columns with na values
+cat("Count of Missing Values (NA) per column:\n")
+bat_data %>%
+  summarise(across(everything(), ~ sum(is.na(.))))
+
+
+##create the summary table
+sp_summary_table <- bat_data %>%
+  group_by(Species) %>%
+  summarise(
+    N = n(),
+    ##calculate and round Mean and SD for all parameters
+    Mean_Freq = round(mean(char_frequency, na.rm = TRUE), 2),
+    SD_Freq = round(sd(char_frequency, na.rm = TRUE), 2),
+    Mean_Duration = round(mean(call_duration, na.rm = TRUE), 2),
+    SD_Duration = round(sd(call_duration, na.rm = TRUE), 2),
+    Mean_Slope = round(mean(char_slope, na.rm = TRUE), 2),
+    SD_Slope = round(sd(char_slope, na.rm = TRUE), 2),
+    Mean_TimeBtw = round(mean(time_btw_calls, na.rm = TRUE), 2),
+    SD_TimeBtw = round(sd(time_btw_calls, na.rm = TRUE), 2)
+  )
+
+#display
+sp_summary_table
+```
+
+## Visualizations
+
+```{r}
+#=============Plot 1: Call Frequency vs. Duration by Species================
+ggplot(bat_data, 
+       aes(x = char_frequency, y = call_duration, color = Species)) +
+  geom_point(alpha = 0.7, size = 3) +
+  labs(
+    title = "Call Frequency vs. Duration by Species",
+    x = "Frequency (kHz)",
+    y = "Call Duration (ms)"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+#=========Plot 2: Density Distribution of Characteristic Slope by Species==========
+
+ggplot(bat_data, aes(x = char_slope, fill = Species, color = Species)) +
+  geom_density(alpha = 0.4) +
+  labs(
+    title = "Density Distribution of Slope by Species",
+    x = "Slope",
+    y = "Density",
+    fill = "Species",
+    color = "Species"
+  ) +
+  theme_minimal()
+```
+
+## Modelling: Random Forest
+
+```{r message=FALSE, warning=FALSE}
+##Import randomforest library
+library(randomForest)
+set.seed(123)
+
+## 70% training data
+train_index <- sample(
+  1:nrow(bat_data),
+  size = 0.7 * nrow(bat_data)
+)
+#split into training and testing
+train_data <- bat_data[train_index, ]
+test_data  <- bat_data[-train_index, ]
+
+##fit the model to parameters
+model <- randomForest(
+  Species ~ call_duration + char_frequency + time_btw_calls + char_slope,
+  data = train_data,
+  ntree = 300,
+  mtry = 2
+)
+
+#make predictions
+predictions <- predict(model, newdata = test_data)
+
+#accuracy
+model_accuracy <- mean(predictions == test_data$Species)
+model_accuracy
+```
+
+## 6. Conclusion
+
+This capstone project confirmed that echolocation call parameters can effectively differentiate the four Vancouver Island bat species. The Random Forest classifier performed strongly, achieving an accuracy of 0.8889, indicating that the measured acoustic features provide substantial discriminatory power across species. The model’s performance supports the idea that call duration, characteristic frequency, time between calls, and slope capture meaningful biological differences in echolocation behaviour. These results highlight the potential for automated acoustic classification tools to support long-term bat monitoring and ecological research.
+
+## Other Sources
+
+**Statistical analysis of bat calls**
+
+David W. Armitage and Holly K. Ober, [A comparison of supervised learning techniques in the classification of bat echolocation calls](https://d1wqtxts1xzle7.cloudfront.net/87523713/Armitage___Ober_2010-libre.pdf?1655248128=&response-content-disposition=inline%3B+filename%3DA_comparison_of_supervised_learning_tech.pdf&Expires=1729484387&Signature=Lxiv5x26ZtpirTLc5hmru9L3utvNK~0nWjTiekUvo7gQZy~qd2uB4xIsYTf~QUTJqP63AJpNWaS3rVroC4dqjfF4Fq~zqsjT-4wJAsg9bKi3p-fLX86ipYcoU9X0mXrdBvVy5XKIJQuD1z5o5WbRSuXjGrJh~dVucgCrVLd8nL-E-VM~WzpTWfr56VOY3DjKf-KIGjS537GBdgsWBr92xPxGxJlSIYtf69pXVJcX9tAIoLNuNyqBSE14Op7h7UZJx26wvaYk9VU6vCUV0-GmZGrrhAmDrSDMm~D0yD08SdvTiGiUHEm4yNNl3JfizbiSKvgwxqGa5tbSEBayh6-Aug__&Key-Pair-Id=APKAJLOHF5GGSLRBV4ZA), *Ecological Infomatics*, 2010, 5, 465:473.
+
+Xing Chen, Jun Zhaob, Yan-hua Chen, Wei Zhoub, and Alice C.Hughes, [Automatic standardized processing and identification of tropical bat calls using deep learning approaches](https://www.sciencedirect.com/science/article/pii/S0006320719308961), *Biological Conservation*, January 2020, Vol.241, doi: 10.1016/j.biocon.2019.108269
+
+Oisin MacAodha, Rory Gibb, Kate E. Barlow, et al., [Bat detective—Deep learning tools for bat acoustic signal detection](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1005995), *PLOS Computational Biology*, 2018-03-08, doi: 10.1371/journal.pcbi.1005995
+
+Keisuke Masuda, Takanori Matsui, Dai Fukui, et al., [Bat species classification by echolocation call using a machine learning system](https://www.jstage.jst.go.jp/article/mammalianscience/57/1/57_19/_article), *Honyurui Kagaku (Mammalian Science)*, Volume 57 (2017) Issue 1. doi: 10.11238/mammalianscience.57.19
+
+Peter Ommundsen,Cori Lausen, Laura Matthias, [First Acoustic Records of the Brazilian Free-Tailed Bat (Tadarida brasiliensis) In British Columbia](https://www.researchgate.net/publication/319424456_First_Acoustic_Records_of_the_Brazilian_Free-Tailed_Bat_Tadarida_brasiliensis_In_British_Columbia), September 2017, *Northwestern Naturalist*, 98(2):132-136, DOI: 10.1898/NWN16-24.1
+
+Veronica Zamora-Gutierrez, Celia Lopez-Gonzalez, M. Cristina MacSwiney Gonzalez, et al., [Acoustic identification of Mexican bats based on taxonomic and ecological constraints on call design](https://besjournals.onlinelibrary.wiley.com/doi/pdf/10.1111/2041-210X.12556), *Methods in Ecology and Evolution* 2016, 7, 1082–1091. doi: 10.1111/2041-210X.12556
+
+**Other bat communication**
+
+Jason Daley, [Researchers “Translate” Bat Talk. Turns Out, They Argue—A Lot](https://getpocket.com/explore/item/researchers-translate-bat-talk-turns-out-they-argue-a-lot), *Smithsonian Magazine*, 2016-12-22.
