@@ -1,0 +1,4 @@
+"0","#import bat_call_data.csv data file"
+"0","bat_call_data <- read_csv(""Bat_Call_Data.csv"")"
+"0","##View the first few rows"
+"0","head(bat_call_data)"

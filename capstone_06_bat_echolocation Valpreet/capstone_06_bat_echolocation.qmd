@@ -1,0 +1,330 @@
+---
+title: "Bat Echolocation"
+subtitle: "Capstone project: BIDA 302"
+author: "Valpreet Kaur"
+date: "11-26-2025"
+format: html
+embed-resources: true
+---
+
+## Introduction {#bat-echolocation-intro}
+
+Echolocation call data for 4 species of Vancouver Island bats (https://bcbats.ca/bat-basics/bat-species-in-bc/). Call data comprises 30 unique records for 4 echolocation call parameters for each of the bat species. Call data was recorded using an ultrasonic bat detector (Anabat; Titley Scientific https://www.titley-scientific.com/) with call parameters downloaded and extracted using AnaLook.
+
+For this project, explore the data using the inspiration provided by the penguin analysis (below).
+
+### Data source {#bat-echolocation-data}
+
+Variables:
+
+**Species**
+
+EPFU - Eptesicus fuscus; Big Brown Bat
+
+LACI - Lasiurus cinereus; Hoary Bat
+
+MYLU - Myotis lucifugus; Little Brown Bat
+
+MYVO - Myotis volans; Long-legged Myotis
+
+**Filename** - Unique ID for each bat call
+
+***Echolocation Call Paramters:***
+
+**Time_Btw_Calls** - Time between calls (milliseconds)
+
+**Duration** - Duration of the body of call (milliseconds)
+
+**Frequency** - Characteristic frequency (kHz)
+
+**Slope** - Characteristic slope
+
+Source: Dr. Joanna Burgar; https://github.com/joburgar/Bat_Data
+
+### Additional Inspiration {#bat-echolocation-palmerpenguins}
+
+The R package {palmerpenguins} reference page has some tabulations and visualizations that may provide some inspiration:
+
+-   https://allisonhorst.github.io/palmerpenguins/
+
+-   in particular, the "Get started" and "Articles" have both the visualizations and the code used to create those visualizations.
+
+## Other resources {#bat-echolocation-other}
+
+**Statistical analysis of bat calls**
+
+David W. Armitage and Holly K. Ober, [A comparison of supervised learning techniques in the classification of bat echolocation calls](https://d1wqtxts1xzle7.cloudfront.net/87523713/Armitage___Ober_2010-libre.pdf?1655248128=&response-content-disposition=inline%3B+filename%3DA_comparison_of_supervised_learning_tech.pdf&Expires=1729484387&Signature=Lxiv5x26ZtpirTLc5hmru9L3utvNK~0nWjTiekUvo7gQZy~qd2uB4xIsYTf~QUTJqP63AJpNWaS3rVroC4dqjfF4Fq~zqsjT-4wJAsg9bKi3p-fLX86ipYcoU9X0mXrdBvVy5XKIJQuD1z5o5WbRSuXjGrJh~dVucgCrVLd8nL-E-VM~WzpTWfr56VOY3DjKf-KIGjS537GBdgsWBr92xPxGxJlSIYtf69pXVJcX9tAIoLNuNyqBSE14Op7h7UZJx26wvaYk9VU6vCUV0-GmZGrrhAmDrSDMm~D0yD08SdvTiGiUHEm4yNNl3JfizbiSKvgwxqGa5tbSEBayh6-Aug__&Key-Pair-Id=APKAJLOHF5GGSLRBV4ZA), *Ecological Infomatics*, 2010, 5, 465:473.
+
+Xing Chen, Jun Zhaob, Yan-hua Chen, Wei Zhoub, and Alice C.Hughes, [Automatic standardized processing and identification of tropical bat calls using deep learning approaches](https://www.sciencedirect.com/science/article/pii/S0006320719308961), *Biological Conservation*, January 2020, Vol.241, doi: 10.1016/j.biocon.2019.108269
+
+Oisin MacAodha, Rory Gibb, Kate E. Barlow, et al., [Bat detective—Deep learning tools for bat acoustic signal detection](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1005995), *PLOS Computational Biology*, 2018-03-08, doi: 10.1371/journal.pcbi.1005995
+
+Keisuke Masuda, Takanori Matsui, Dai Fukui, et al., [Bat species classification by echolocation call using a machine learning system](https://www.jstage.jst.go.jp/article/mammalianscience/57/1/57_19/_article), *Honyurui Kagaku (Mammalian Science)*, Volume 57 (2017) Issue 1. doi: 10.11238/mammalianscience.57.19
+
+Peter Ommundsen,Cori Lausen, Laura Matthias, [First Acoustic Records of the Brazilian Free-Tailed Bat (Tadarida brasiliensis) In British Columbia](https://www.researchgate.net/publication/319424456_First_Acoustic_Records_of_the_Brazilian_Free-Tailed_Bat_Tadarida_brasiliensis_In_British_Columbia), September 2017, *Northwestern Naturalist*, 98(2):132-136, DOI: 10.1898/NWN16-24.1
+
+Veronica Zamora-Gutierrez, Celia Lopez-Gonzalez, M. Cristina MacSwiney Gonzalez, et al., [Acoustic identification of Mexican bats based on taxonomic and ecological constraints on call design](https://besjournals.onlinelibrary.wiley.com/doi/pdf/10.1111/2041-210X.12556), *Methods in Ecology and Evolution* 2016, 7, 1082–1091. doi: 10.1111/2041-210X.12556
+
+**Other bat communication**
+
+Jason Daley, [Researchers “Translate” Bat Talk. Turns Out, They Argue—A Lot](https://getpocket.com/explore/item/researchers-translate-bat-talk-turns-out-they-argue-a-lot), *Smithsonian Magazine*, 2016-12-22.
+
+# **Bat Echolocation Capstone Project**
+
+In this project, we will import, tidy, visualize, and analyze the bat call data following an approach inspired by the Palmer Penguins dataset. there are four parameters measured in each call: **Time_Btw_Calls (ms), Duration (ms), Frequency (kHz) & Slope**
+
+## **1. Data import**
+
+here we are going to import the re data to be used for analysis in the project (**Bat_call_data.csv**)
+
+```{r setup, message=FALSE}
+#import necessary libraries for this project
+library(tidyverse) #for libraries like ggplot etc.
+library(janitor)#for data cleaning
+library(knitr)#for formated tables
+```
+
+Importig and reading the data into the project
+
+```{r}
+#import bat_call_data.csv data file
+bat_call_data <- read_csv("Bat_Call_Data.csv")
+##View the first few rows
+head(bat_call_data)
+#structure of thedata
+glimpse(bat_call_data)
+```
+
+## **2. Tidying & Manipulation**
+
+In this step, I prepare the dataset so it is ready for analysis. This includes making sure the variable names are consistent, organizing the data in a clear way, checking for duplicate records.
+
+### **Define variable types and clean names**
+
+Change the variable types to suitable ones (changing the datatypes ) to help in data manipulation
+
+```{r}
+bat_call_data <- bat_call_data %>%
+  clean_names() %>% ##function to clean names
+  mutate(
+    species = as.factor(species), #read spicieas as a factor
+    filename = as.character(filename),#change filename to character type
+    time_btw_calls = as.numeric(time_btw_calls),#change time_btwn calls tp numeric
+    duration = as.numeric(duration),#change to numeric
+    frequency = as.numeric(frequency),#change frequency to numeric
+    slope = as.numeric(slope)#change the slopeto numeric
+  )
+#see the changes made in the structure
+glimpse(bat_call_data)
+```
+
+### **remove duplicat records**
+
+```{r}
+#find duplicates from the dataset
+dup_data <- bat_call_data %>% duplicated()
+
+#remove duplcat records fromthe dataset
+bat_call_data <- bat_call_data %>% distinct()
+```
+
+```{r}
+#sort by species and filename for easier view
+bat_call_data <- bat_call_data %>% arrange(species, filename)
+#first few rows of sorted data
+head(bat_call_data)
+```
+
+### ***Summary statistics for each call parameter in a summary table***
+
+computing the mean, standard deviation, minimum, and maximum values each of the species in the dataset.
+
+```{r}
+##function to calculate summary statistics by species
+summarize_by_species <- function(data) {
+  data %>%
+    group_by(species) %>%
+    summarise(
+      mean_duration   = mean(duration, na.rm = TRUE),
+      sd_duration     = sd(duration, na.rm = TRUE),
+      mean_frequency  = mean(frequency, na.rm = TRUE),
+      sd_frequency    = sd(frequency, na.rm = TRUE),
+      mean_time_btw   = mean(time_btw_calls, na.rm = TRUE),
+      sd_time_btw     = sd(time_btw_calls, na.rm = TRUE),
+      mean_slope      = mean(slope, na.rm = TRUE),
+      sd_slope        = sd(slope, na.rm = TRUE)
+    )
+}
+## generate the summary table usig the funcion
+summary_stats <- summarize_by_species(bat_call_data)
+
+#display the sumary table
+summary_stats
+```
+
+## **3. Visualizations**
+
+### **Tables**
+
+**Summary table**
+
+```{r message=FALSE}
+#function create sumary table with selected statistics for species
+create_species_summary <- function(data) {
+  data %>%
+    group_by(species) %>%
+    summarise(
+      n = n(),
+      mean_duration = mean(duration, na.rm = TRUE),
+      mean_frequency = mean(frequency, na.rm = TRUE),
+      mean_time_btw_calls = mean(time_btw_calls, na.rm = TRUE),
+      mean_slope = mean(slope, na.rm = TRUE)
+    )
+}
+#generate the summary table using the function
+summary_table <- create_species_summary(bat_call_data)
+
+##display table output
+kable(summary_table,caption = "Summary Statistics for Each Bat Species")
+```
+
+The table indicates a distinct difference in the features of average echolocation calls of the four bat species. LACI has the longest average call duration and the highest time between calls whereas MYLU and MYVO generate relatively short calls. MYLU has the largest average call frequency with MYVO coming very close and LACI has the least. MYVO demonstrates the sharpest average slope, which means that the changes in call structure are more rapid. The variations are indicative of the fact that every species applies echolocation differently.
+
+### **Plots**
+
+#### **Scatterplots**
+
+**Frequency vs Duration**
+
+```{r}
+#plot of frequncy vs duration of the spcies
+bat_call_data %>%
+  ggplot(aes(x = duration, y = frequency, color = species)) +
+  geom_point(size = 3, alpha = 0.7) +
+  labs(
+    title = "Frequency vs Duration of Bat Calls",##plot title
+    x = "Duration in ms",
+    y = "Frequency in kHz"
+  ) +
+  theme_minimal()
+```
+
+**Discussion**
+
+This scatter plot shows that each bat species has its own unique range of call frequency and duration. LACI produces low-frequency calls, which travel farther and are better suited for open spaces. MYLU and MYVO use much higher-frequency and shorter calls, which work well in dense habitats such as forests where detailed navigation is needed, even though the sound does not travel very far. EPFU falls between these groups in both frequency and duration. The small areas where the species overlap suggest that bats have adapted their calls to reduce competition and allow different species to hunt in different environments without interfering with each other.
+
+**Time Between Calls vs Frequency**
+
+```{r}
+bat_call_data %>%
+  ggplot(aes(x = time_btw_calls, y = frequency, color = species)) +
+  geom_point(size = 3, alpha = 0.7) +
+  labs(
+    title = "Time between calls vs Frequency",
+    x = "Time between Calls (ms)",
+    y = "Frequency (kHz)"
+  ) +
+  theme_minimal()
+```
+
+**Discussion**
+
+This scatter plot shows that each bat species usually uses a specific call frequency, but the time between calls can change a lot depending on what the bat is doing. All four species can adjust how fast they call, even though they operate at different frequencies. This is especially important during hunting. When a bat is searching over long distances, it sends out calls more slowly. As it gets closer to its target, the calls become much faster to track the prey’s movement more accurately. These results suggest that all four species are able to adjust their echolocation effectively to meet their hunting and navigation needs.
+
+#### **Density Plot**
+
+**Frequency Distribution for All Species**
+
+```{r}
+bat_call_data %>%
+  ggplot(aes(x = frequency, color = species, fill = species)) +
+  geom_density(alpha = 0.3) +
+  labs(
+    title = "Density plot for Call frequency",
+    x = "Frequency (kHz)",
+    y = "Density"
+  ) +
+  theme_minimal()
+```
+
+**Interpretation**
+
+The sharp peaks and very little overlap in this density plot show that each species produces echolocation calls at a very consistent frequency. For example, MYLU has a strong peak around 40 kHz, which suggests that this frequency is tightly controlled. Having a stable frequency is important because even small changes could affect how well a bat detects echoes and catches prey. This plot supports the idea that call frequency is an important feature that helps separate species and allows each bat to primarily respond to the echoes from its own calls.
+
+## **4. Model: Simple classification model**
+
+### **Multiclass logistic regression model**
+
+**Load Package**
+
+```{r}
+##Load needed package logistic regression
+library(nnet)
+```
+
+**split data for training and testing**
+
+```{r}
+#spliting the data into training and testing
+set.seed(123)
+
+#training index (70% train data and 30% test)
+training_index <- sample(1:nrow(bat_call_data), size = 0.7 * nrow(bat_call_data))
+
+##Split into training and test sets
+training_data <- bat_call_data[training_index, ]
+testing_data  <- bat_call_data[-training_index, ]
+```
+
+**Fit the model**
+
+```{r}
+##fit multinomial logistic regression with all the 4 numric parameters
+model <- multinom(
+  species ~ duration + frequency + time_btw_calls + slope,
+  data = training_data
+)
+
+summary(model)
+```
+
+**Make predictions**
+
+```{r}
+#make predictions of the species on test data
+predicted_species <- predict(model, newdata = testing_data)
+
+#compare predictions on the actual species
+predicted_species
+```
+
+Evaluate model accuracy
+
+```{r}
+## model accuracy
+accuracy <- mean(predicted_species == testing_data$species)
+accuracy
+```
+
+Confusion matrix
+
+```{r}
+table(
+  Actual = testing_data$species,
+  Predicted = predicted_species
+)
+```
+
+#### **Model Results**
+
+***Prediction Accuracy***\
+The model achieved an accuracy of ***88.9%***, meaning it correctly predicted the bat species for most of the test data. This shows that even a simple classification model can perform well using basic echolocation features.
+
+***Confusion Matrix Interpretation***\
+EPFU was classified perfectly, with all 11 test cases predicted correctly. LACI also showed strong performance, with only one misclassification. MYLU and MYVO showed a small amount of confusion between them, which is expected since these two species share similar echolocation characteristics.
+
+## **Conclusion**
+
+This was a project that investigated bat echolocation calls in order to know the difference between species level and construct a simplified predictive model. Visual analysis, data cleaning, and classification presented significant patterns of call frequency, duration, and Interorder intervals between calls, which were well justified by ecological anticipated patterns. There were also overlapping acoustic ranges of some species and this could have affected the classification outcome.
+
+An approximation of 88.9 percent accuracy was obtained using a multinomial logistic regression model indicating that even a simple model can be used to predict species using a small dataset. On the whole, the project has shown that the acoustic features can be used to differentiate bat species and statistical modeling can be used to facilitate automated recognition of species. The developed workflow is a strong basis of further research using more massive data and models.

@@ -1,0 +1,4 @@
+"0","#sort by species and filename for easier view"
+"0","bat_call_data <- bat_call_data %>% arrange(species, filename)"
+"0","#first few rows of sorted data"
+"0","head(bat_call_data)"
